@@ -1,27 +1,69 @@
-﻿using System;
+﻿using AStarPuzzle.Algorithm;
+using AStarPuzzle.Helpers;
+using AStarPuzzle.Models;
+using System;
+using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
-using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Windows.Forms;
-using static System.Windows.Forms.AxHost;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace AStarPuzzle
 {
     public partial class FormMain : Form
     {
+        private List<PictureBox> _pictureBoxes = new List<PictureBox>();
+        private Image _originalImage;
+        private int _size = 3;
+        private bool _canSolve = false, _isSolved = false;
+        private readonly Color _emptyColor = Color.BlueViolet;
+        public CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
+        private List<HeuristicType> _heuristicTypes;
+
         public FormMain()
         {
             InitializeComponent();
+            InitHeuristic();
+            InjectHeuristicTypeToControl();
         }
+        private void InitHeuristic()
+        {
+            _heuristicTypes = new List<HeuristicType>
+            {
+                new HeuristicType()
+                {
+                    Id = 1,
+                    Name = "Misplaced Tiles",
+                    Description = "Đây là heuristic đơn giản và dễ cài đặt. Nó đếm số lượng ô không ở đúng vị trí trong trạng thái hiện tại so với trạng thái mục tiêu.",
+                    Heuristic = HeuristicOption.MisplacedTiles
+                },
+                new HeuristicType()
+                {
+                    Id = 2,
+                    Name = "Manhattan Distance",
+                    Description = "Heuristic này tính tổng khoảng cách Manhattan của các ô từ vị trí hiện tại đến vị trí mục tiêu. Khoảng cách Manhattan giữa hai ô là tổng khoảng cách theo chiều ngang và dọc giữa chúng.",
+                    Heuristic = HeuristicOption.ManhattanDistance
 
-        private Panel[,] _panelBoxs;
-        private PictureBox[,] _pictureBoxes;
-        private Image _originalImage;
-        private int _size = 3;
-        private string folderPath = Path.Combine(Application.StartupPath, "Images");
+                },
+                new HeuristicType()
+                {
+                    Id = 3,
+                    Name = "Euclidean Distance",
+                    Description = "Heuristic này tính khoảng cách Euclidean từ vị trí hiện tại đến vị trí mục tiêu. Khoảng cách Euclidean giữa hai điểm là căn bậc hai của tổng bình phương khoảng cách theo chiều ngang và dọc giữa chúng.",
+                    Heuristic = HeuristicOption.EuclideanDistance
+                }
+            };
+        }
+        private void InjectHeuristicTypeToControl()
+        {
+            cmbHeuristic.DataSource = _heuristicTypes;
 
+            cmbHeuristic.DisplayMember = "Name";
+            cmbHeuristic.ValueMember = "Id";
+
+            cmbHeuristic.SelectedIndex = 0;
+        }
         private void btnChooseImage_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
@@ -34,134 +76,13 @@ namespace AStarPuzzle
                     string selectedFilePath = openFileDialog.FileName;
                     _originalImage = Image.FromFile(selectedFilePath);
 
-                    _originalImage = LoadImage(_originalImage);
+                    _originalImage.LoadImage(ref _pictureBoxes, ref tblSplitImages, _size, btnRandom);
+
+                    picSelectedImage.Image = _originalImage.ResizeImage(picSelectedImage.Width, picSelectedImage.Height);
+
                 }
             }
         }
-        public void SaveImage(Image image, string filePath)
-        {
-            Bitmap temp = new Bitmap(image);
-            temp.Save(filePath, ImageFormat.Jpeg);
-        }
-
-        private Image ResizeImage(Image originalImage, int containerWidth, int containerHeight)
-        {
-            if (originalImage.Width < containerWidth || originalImage.Height < containerHeight)
-            {
-                float widthScale = (float)containerWidth / originalImage.Width;
-                float heightScale = (float)containerHeight / originalImage.Height;
-
-                float scale = Math.Max(widthScale, heightScale);
-
-                int newWidth = (int)(originalImage.Width * scale);
-                int newHeight = (int)(originalImage.Height * scale);
-
-                Bitmap resizedImage = new Bitmap(originalImage, newWidth, newHeight);
-                SaveImage(resizedImage,folderPath + "\\CutCenter.jpg");
-
-                //return CutCenterImage(resizedImage, containerWidth, containerHeight);
-                return resizedImage;
-            }
-
-            return originalImage;
-        }
-
-        Image CutCenterImage(Image originalImage, int containerWidth, int containerHeight)
-        {
-            if (containerWidth > containerHeight)
-            {
-                var cutSize = containerHeight;
-                int temp = Math.Abs(containerHeight - containerWidth) / 2;
-                int fromX = temp;
-                var fromY = 0;
-
-                Bitmap croppedImage = new Bitmap(cutSize, cutSize);
-                using (Graphics g = Graphics.FromImage(originalImage))
-                {
-                    // Vẽ phần cắt từ ảnh gốc lên hình ảnh mới
-                    g.DrawImage(
-                        croppedImage,
-                        new Rectangle(0, 0, cutSize, cutSize),
-                        new Rectangle(fromX, fromY, cutSize, cutSize), GraphicsUnit.Pixel
-                        );
-                }
-                SaveImage(croppedImage, folderPath + "\\Crop.jpg");
-
-                return croppedImage;
-            }
-
-            if (containerWidth < containerHeight)
-            {
-                var cutSize = containerWidth;
-                int temp = Math.Abs(containerHeight - containerWidth) / 2;
-
-                int fromX = 0;
-                var fromY = temp;
-
-
-                Bitmap croppedImage = new Bitmap(cutSize, cutSize);
-                using (Graphics g = Graphics.FromImage(croppedImage))
-                {
-                    // Vẽ phần cắt từ ảnh gốc lên hình ảnh mới
-                    g.DrawImage(
-                        originalImage,
-                        new Rectangle(0, 0, cutSize, cutSize),
-                        new Rectangle(fromX, fromY, cutSize, cutSize), GraphicsUnit.Pixel
-                    );
-                }
-                SaveImage(croppedImage, folderPath + "\\Crop.jpg");
-
-                return croppedImage;
-            }
-            return originalImage;
-        }
-
-        private Image LoadImage(Image image)
-        {
-            image = ResizeImage(image, tblSplitImages.Width, tblSplitImages.Height);
-
-            tblSplitImages.Controls.Clear();
-            _panelBoxs = new Panel[_size, _size];
-            _pictureBoxes = new PictureBox[_size, _size];
-
-
-            var cellSize = image.Width / _size;
-            for (int i = 0; i < _size; i++)
-            {
-                for (int j = 0; j < _size; j++)
-                {
-                    _panelBoxs[i, j] = new Panel()
-                    {
-                        Dock = DockStyle.Fill
-                    };
-                    _pictureBoxes[i, j] = new PictureBox()
-                    {
-                        Dock = DockStyle.Fill,
-                        Width = cellSize,
-                        Height = cellSize,
-                    };
-
-                    Image cellImage = new Bitmap(cellSize, cellSize);
-                    using (Graphics g = Graphics.FromImage(cellImage))
-                    {
-                        g.DrawImage(image,
-                            new Rectangle(0, 0, cellSize, cellSize),
-                            new Rectangle(j * cellSize, i * cellSize, cellSize, cellSize), GraphicsUnit.Pixel);
-                    }
-
-                    _pictureBoxes[i, j].Image = cellImage;
-                    SaveImage(cellImage, folderPath +$"\\cellImages{i}-{j}.jpg");
-
-
-                    _panelBoxs[i, j].Controls.Add(_pictureBoxes[i, j]);
-
-                    tblSplitImages.Controls.Add(_pictureBoxes[i, j], j, i);
-                }
-            }
-
-            return image;
-        }
-
 
         private void cmbSize_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -170,31 +91,248 @@ namespace AStarPuzzle
             tblSplitImages.RowCount = tblSplitImages.ColumnCount = size;
             _size = size;
 
-
             tblSplitImages.Controls.Clear();
 
-            if (_originalImage != null) LoadImage(_originalImage);
-            ResizeTable(size);
+            if (_originalImage != null) _originalImage.LoadImage(ref _pictureBoxes, ref tblSplitImages, _size, btnRandom);
+
+            tblSplitImages.ResizeTable(_size);
 
         }
-
         private void FormMain_Load(object sender, EventArgs e)
         {
-            cmbSize.SelectedItem = "3";
+            cmbSize.SelectedItem = _size + string.Empty;
         }
 
-        void ResizeTable(int size)
+        private void btnRandom_Click(object sender, EventArgs e)
         {
-            var rowHeight = (float)100.0 / size;
-            var rowWidth = (float)100.0 / size;
-            tblSplitImages.RowStyles.Clear();
-            tblSplitImages.ColumnStyles.Clear();
+            if (!HandleEmptyImage(_originalImage)) return;
 
-            for (int i = 0; i < size; ++i)
+            tblSplitImages.RandomLayout(_pictureBoxes, _size);
+            _isSolved = false;
+
+        }
+
+        private void BeforeStart(ref CancellationTokenSource cancellationTokenSource)
+        {
+            cancellationTokenSource = new CancellationTokenSource();
+        }
+
+        private void ShowSuccessMessage(CancellationTokenSource cancellationTokenSource)
+        {
+            if (!cancellationTokenSource.Token.IsCancellationRequested)
             {
-                tblSplitImages.RowStyles.Add(new RowStyle(SizeType.Percent, rowHeight));
-                tblSplitImages.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, rowWidth));
+                MessageBox.Show(@"Hoàn thành", @"Trạng thái công việc", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
             }
+        }
+        private void btnCanSolve_Click(object sender, EventArgs e)
+        {
+            if (!HandleEmptyImage(_originalImage)) return;
+            var pictureBoxes = tblSplitImages.Controls.Cast<PictureBox>().ToList();
+
+            var inputSolve = MatrixHelper.GetMatrix(_pictureBoxes, _size, Color.BlueViolet);
+            var inputSolveFlatten = MatrixHelper.FlattenMatrix(inputSolve);
+
+            var solveResult = GameHelper.CanSolve(pictureBoxes, inputSolveFlatten, _size);
+
+            //MessageBox.Show($@"n = {solveResult.n}, " +
+            //                $@"N = {solveResult.N}, " +
+            //                $@"Hàng ô trống(từ 1) ={solveResult.EmptyRowIndex}",
+            //    @"Sau khi tính toán", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            string outputSolveMessage = solveResult.CanSolve ? "Có thể giải được" : "Không thể giải được" + "\nBạn có muốn sinh ngẫu nhiên lại không";
+            var outputSolveIcon = solveResult.CanSolve ? MessageBoxIcon.Question : MessageBoxIcon.Warning;
+            var outputSolveButtuon = solveResult.CanSolve ? MessageBoxButtons.OK : MessageBoxButtons.YesNo;
+
+            var result = MessageBox.Show(outputSolveMessage, @"Kết quả ước lượng!", outputSolveButtuon, outputSolveIcon);
+            if (result.Equals(DialogResult.Yes))
+            {
+                btnRandom.PerformClick();
+            }
+            _canSolve = solveResult.CanSolve;
+
+        }
+
+
+        private async void btnRunSolver_Click(object sender, EventArgs e)
+        {
+            if (!HandleEmptyImage(_originalImage)) return;
+            if (!HandleSize(_size)) return;
+            if (!HandleNotSolve(_canSolve)) return;
+            if (!HandleSolved(_isSolved)) return;
+
+
+            var currentMatrix = MatrixHelper.GetMatrix(_pictureBoxes, _size, _emptyColor);
+
+            var aStar = new AStarAlgorithm(HeuristicOption.EuclideanDistance, _size);
+
+            var currentHeuristic = GetCurrentHeuristic();
+
+            var resultStack = aStar.Solve(currentMatrix, currentHeuristic.Heuristic);
+
+            int resultCount = resultStack.Count;
+
+            if (resultCount == 0)
+            {
+                var message = "Trạng thái đích rồi, không cần giải!\nHãy chọn ảnh mới hoặc tạo ngẫu nhiên lại!";
+                MessageBox.Show(message, @"Thông báo", MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            var resultMessage =
+                $"Giải trong {resultCount - 1} bước theo  heuristic {currentHeuristic.Name}.\nBạn có muốn chạy không?";
+            var dialogResult = MessageBox.Show(resultMessage, @"Giải thành công",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (dialogResult.Equals(DialogResult.Yes))
+            {
+                pbSolveStep.Minimum = 0;
+                pbSolveStep.Maximum = resultCount - 1;
+                btnStop.Enabled = btnRandom.Enabled = btnCanSolve.Enabled =
+                    btnChooseImage.Enabled = btnRunSolver.Enabled = btnSolveAllAlgorithm.Enabled
+                        = btnReset.Enabled = cmbHeuristic.Enabled = false;
+                await tblSplitImages.RunSolve(
+                    result: resultStack,
+                    cancellationTokenSource: CancellationTokenSource,
+                    tbSpeed: tbSpeed,
+                    beforeStart: BeforeStart,
+                    afterStart: ShowSuccessMessage,
+                    updateProgressbar: UpdateProgressbarInForm,
+                    btnStop: btnStop,
+                    btnStopAction: null
+                    );
+
+                var dialog = MessageBox.Show(@"Thuật toán đã chạy xong, bạn muốn xóa màn hình và chạy mới không?",
+                    @"Thông báo", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                _isSolved = true;
+
+
+                if (dialog.Equals(DialogResult.Yes))
+                {
+                    ResetInput();
+                }
+
+                btnStop.Enabled = btnRandom.Enabled = btnCanSolve.Enabled =
+                    btnChooseImage.Enabled = btnRunSolver.Enabled = btnSolveAllAlgorithm.Enabled
+                        = btnReset.Enabled = cmbHeuristic.Enabled = true;
+            }
+
+        }
+
+        private bool HandleSolved(bool solved)
+        {
+            if (solved)
+            {
+                string message =
+                    "Đã được giải";
+                MessageBox.Show(message, @"Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            return true;
+        }
+
+
+        private bool HandleSize(int size)
+        {
+            if (size != 3)
+            {
+                MessageBox.Show(@"Hiện tại chỉ hỗ trợ giải 3x3!
+Mức cao hơn máy không chạy nổi vì không gian mẫu quá lớn", @"Chức năng", MessageBoxButtons.OK,
+                    MessageBoxIcon.Exclamation);
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool HandleNotSolve(bool canSolve)
+        {
+            if (!canSolve)
+            {
+                string message =
+                    "Trạng thái này chưa tìm lời giải!\nHãy bấm \"Ngẫu nhiên\" hoặc nhấn \"Ước lượng\" trước!";
+                MessageBox.Show(message, @"Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+
+            return true;
+        }
+
+        void ResetInput()
+        {
+            _originalImage = null;
+            _pictureBoxes.Clear();
+            tblSplitImages.Controls.Clear();
+            _canSolve = false;
+            picSelectedImage.Image = null;
+            pbSolveStep.Value = 0;
+            pbSolveStep.Minimum = 0;
+            lblSolveStep.Text = @"0/0";
+            _isSolved = _canSolve = false;
+        }
+        private void UpdateProgressbarInForm(int curentValue, int maxValue)
+        {
+            pbSolveStep.Invoke(new Action(() =>
+            {
+                pbSolveStep.Value = curentValue;
+            }));
+            lblSolveStep.Invoke(new Action(() =>
+            {
+                lblSolveStep.Text = $@"{curentValue}/{maxValue}";
+
+            }));
+        }
+
+        private bool HandleEmptyImage(Image image)
+        {
+            if (image == null)
+            {
+                MessageBox.Show(@"Chọn ảnh trước đã", @"Chưa chọn ảnh", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            return true;
+        }
+
+
+        HeuristicType GetCurrentHeuristic()
+        {
+            var heuristic = cmbHeuristic.SelectedItem as HeuristicType;
+            return heuristic;
+        }
+
+        private void btnSolveAllAlgorithm_Click(object sender, EventArgs e)
+        {
+            if (!HandleEmptyImage(_originalImage)) return;
+            if (!HandleSize(_size)) return;
+            if (!HandleNotSolve(_canSolve)) return;
+            if (!HandleSolved(_isSolved)) return;
+
+            var currentMatrix = MatrixHelper.GetMatrix(_pictureBoxes, _size, _emptyColor);
+
+            var aStar = new AStarAlgorithm(HeuristicOption.EuclideanDistance, _size);
+            var stack1 = aStar.Solve(currentMatrix, HeuristicOption.MisplacedTiles);
+            var stack2 = aStar.Solve(currentMatrix, HeuristicOption.ManhattanDistance);
+            var stack3 = aStar.Solve(currentMatrix, HeuristicOption.EuclideanDistance);
+
+            var builder = new StringBuilder();
+            builder.AppendLine("Kết quả giải theo các heuristic");
+            builder.AppendLine($"Misplaced Tiles: {stack1.Count - 1} bước");
+            builder.AppendLine($"Manhattan Distance: {stack2.Count - 1} bước");
+            builder.AppendLine($"Euclidean Distance: {stack3.Count - 1} bước");
+
+            MessageBox.Show(builder.ToString(), @"Kết quả giải", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+
+        }
+
+
+
+        private void btnReset_Click(object sender, EventArgs e)
+        {
+            ResetInput();
         }
     }
 }
