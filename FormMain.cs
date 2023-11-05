@@ -3,8 +3,10 @@ using AStarPuzzle.Helpers;
 using AStarPuzzle.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -108,6 +110,7 @@ namespace AStarPuzzle
             if (!HandleEmptyImage(_originalImage)) return;
 
             tblSplitImages.RandomLayout(_pictureBoxes, _size);
+            _canSolve = false;
             _isSolved = false;
 
         }
@@ -135,16 +138,15 @@ namespace AStarPuzzle
 
             var solveResult = GameHelper.CanSolve(pictureBoxes, inputSolveFlatten, _size);
 
-            //MessageBox.Show($@"n = {solveResult.n}, " +
-            //                $@"N = {solveResult.N}, " +
-            //                $@"Hàng ô trống(từ 1) ={solveResult.EmptyRowIndex}",
-            //    @"Sau khi tính toán", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            string temp = $"n = {solveResult.n}\n" +
+                          $"N = {solveResult.N}\n" +
+                          $"Hàng ô trống(từ 1) ={solveResult.EmptyRowIndex}";
 
             string outputSolveMessage = solveResult.CanSolve ? "Có thể giải được" : "Không thể giải được" + "\nBạn có muốn sinh ngẫu nhiên lại không";
             var outputSolveIcon = solveResult.CanSolve ? MessageBoxIcon.Question : MessageBoxIcon.Warning;
             var outputSolveButtuon = solveResult.CanSolve ? MessageBoxButtons.OK : MessageBoxButtons.YesNo;
 
-            var result = MessageBox.Show(outputSolveMessage, @"Kết quả ước lượng!", outputSolveButtuon, outputSolveIcon);
+            var result = MessageBox.Show(temp + "\n" + outputSolveMessage, @"Kết quả ước lượng!", outputSolveButtuon, outputSolveIcon);
             if (result.Equals(DialogResult.Yes))
             {
                 btnRandom.PerformClick();
@@ -161,16 +163,16 @@ namespace AStarPuzzle
             if (!HandleNotSolve(_canSolve)) return;
             if (!HandleSolved(_isSolved)) return;
 
+            var currentHeuristic = GetCurrentHeuristic();
 
             var currentMatrix = MatrixHelper.GetMatrix(_pictureBoxes, _size, _emptyColor);
 
-            var aStar = new AStarAlgorithm(HeuristicOption.EuclideanDistance, _size);
+            var elapsed = GetTimeSolve(currentMatrix, currentHeuristic.Heuristic, out var stackResult);
 
-            var currentHeuristic = GetCurrentHeuristic();
+            
 
-            var resultStack = aStar.Solve(currentMatrix, currentHeuristic.Heuristic);
 
-            int resultCount = resultStack.Count;
+            int resultCount = stackResult.Count;
 
             if (resultCount == 0)
             {
@@ -179,9 +181,11 @@ namespace AStarPuzzle
                     MessageBoxIcon.Information);
                 return;
             }
+            var builder = new StringBuilder();
+            builder.AppendLine($"Giải theo heuristic \"Misplaced Tiles\": {stackResult.Count - 1} bước, hết {elapsed.Milliseconds} ms");
+            builder.AppendLine("Bạn có muốn chạy thuật toán không?");
 
-            var resultMessage =
-                $"Giải trong {resultCount - 1} bước theo  heuristic {currentHeuristic.Name}.\nBạn có muốn chạy không?";
+            var resultMessage = builder.ToString();
             var dialogResult = MessageBox.Show(resultMessage, @"Giải thành công",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
@@ -193,7 +197,7 @@ namespace AStarPuzzle
                     btnChooseImage.Enabled = btnRunSolver.Enabled = btnSolveAllAlgorithm.Enabled
                         = btnReset.Enabled = cmbHeuristic.Enabled = false;
                 await tblSplitImages.RunSolve(
-                    result: resultStack,
+                    result: stackResult,
                     cancellationTokenSource: CancellationTokenSource,
                     tbSpeed: tbSpeed,
                     beforeStart: BeforeStart,
@@ -311,24 +315,37 @@ Mức cao hơn máy không chạy nổi vì không gian mẫu quá lớn", @"Ch�
             if (!HandleSolved(_isSolved)) return;
 
             var currentMatrix = MatrixHelper.GetMatrix(_pictureBoxes, _size, _emptyColor);
-
-            var aStar = new AStarAlgorithm(HeuristicOption.EuclideanDistance, _size);
-            var stack1 = aStar.Solve(currentMatrix, HeuristicOption.MisplacedTiles);
-            var stack2 = aStar.Solve(currentMatrix, HeuristicOption.ManhattanDistance);
-            var stack3 = aStar.Solve(currentMatrix, HeuristicOption.EuclideanDistance);
-
             var builder = new StringBuilder();
             builder.AppendLine("Kết quả giải theo các heuristic");
-            builder.AppendLine($"Misplaced Tiles: {stack1.Count - 1} bước");
-            builder.AppendLine($"Manhattan Distance: {stack2.Count - 1} bước");
-            builder.AppendLine($"Euclidean Distance: {stack3.Count - 1} bước");
+
+            var elapsed = GetTimeSolve(currentMatrix, HeuristicOption.MisplacedTiles, out var stackResult);
+            builder.AppendLine($"Misplaced Tiles: {stackResult.Count - 1} bước, hết {elapsed.Milliseconds} ms");
+
+            stackResult.Clear();
+            elapsed = GetTimeSolve(currentMatrix, HeuristicOption.ManhattanDistance, out stackResult);
+            builder.AppendLine($"Manhattan Distance: {stackResult.Count - 1} bước, hết {elapsed.Milliseconds} ms");
+
+            stackResult.Clear();
+            elapsed = GetTimeSolve(currentMatrix, HeuristicOption.EuclideanDistance, out stackResult);
+            builder.AppendLine($"Euclidean Distance: {stackResult.Count - 1} bước, hết {elapsed.Milliseconds} ms");
+
 
             MessageBox.Show(builder.ToString(), @"Kết quả giải", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
 
         }
 
+        TimeSpan GetTimeSolve(int[,] matrix, HeuristicOption heuristicOption, out Stack<int[,]> stackResult)
+        {
+            Stopwatch stopwatch = new Stopwatch();
+            var aStar = new AStarAlgorithm();
 
+            stopwatch.Start();
+            stackResult = aStar.Solve(matrix, heuristicOption);
+            stopwatch.Stop();
+
+            return stopwatch.Elapsed;
+        }
 
         private void btnReset_Click(object sender, EventArgs e)
         {
