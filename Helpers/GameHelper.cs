@@ -9,14 +9,14 @@ namespace AStarPuzzle.Helpers
 {
     public static class GameHelper
     {
-        public static int FindEmptyRowIndexFrom1(List<PictureBox> pictureBoxes)
+        public static int FindEmptyRowIndexFrom1(List<PictureBox> pictureBoxes, Color color = default)
         {
             int emptyPictureRowIndex = -1;
             if (pictureBoxes.Where(x =>
                 {
                     PictureBox pictureBox = x;
                     if (pictureBox == null) return false;
-                    return pictureBox.BackColor == Color.BlueViolet;
+                    return pictureBox.BackColor == color;
                 }).FirstOrDefault() is PictureBox emptyPictureBox)
             {
                 var pictureTag = emptyPictureBox.Tag as PictureTag;
@@ -26,7 +26,7 @@ namespace AStarPuzzle.Helpers
 
             return emptyPictureRowIndex + 1;//vị trí tính từ 0, phải tăng thêm 1
         }
-        public static SolveResult CanSolve(List<PictureBox> pictureBoxes, int[] listValueFrom1ToN, int n)
+        public static SolveResult CanSolve(List<PictureBox> pictureBoxes, int[] listValueFrom1ToN, int n, Color color = default)
         {
             //n: kích thước của ma trận n * n
             //N: Inversion count - ước lượng đảo ngược, dùng để đánh giá tính khả dịch của trò chơi
@@ -52,7 +52,7 @@ namespace AStarPuzzle.Helpers
 
                 }
             }
-            var emptyRowIndex = FindEmptyRowIndexFrom1(pictureBoxes);
+            var emptyRowIndex = FindEmptyRowIndexFrom1(pictureBoxes, color);
             if (n % 2 != 0)
                 return new SolveResult()
                 {

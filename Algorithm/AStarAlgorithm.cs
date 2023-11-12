@@ -63,9 +63,9 @@ namespace AStarPuzzle.Algorithm
                 //nếu node có số mảnh sai là 0, tức là đích thì thoát
                 if (node.Heuristic == 0) break;
                 //sinh hướng đi của node hiện tại
-                var lstHuongDi = GenerateStep(node);
+                var listDistances = GenerateStep(node);
 
-                foreach (var t in lstHuongDi)
+                foreach (var t in listDistances)
                 {
                     //hướng đi không thuộc Open và Close
                     if (!EqualNode(t, open) && !EqualNode(t, close))
@@ -111,11 +111,11 @@ namespace AStarPuzzle.Algorithm
         //truy vét kết quả đường đi trong tập Close
         static Stack<int[,]> BacktrackingResult(List<Node> close)
         {
-            Stack<int[,]> ketQua = new Stack<int[,]>();
+            Stack<int[,]> resultStack = new Stack<int[,]>();
 
             int t = close[close.Count - 1].Parent;
             Node temp = new Node();
-            ketQua.Push(close[close.Count - 1].Matrix);
+            resultStack.Push(close[close.Count - 1].Matrix);
 
             while (t != -1)
             {
@@ -128,18 +128,18 @@ namespace AStarPuzzle.Algorithm
                     }
                 }
 
-                ketQua.Push(temp.Matrix);
+                resultStack.Push(temp.Matrix);
                 t = temp.Parent;
             }
 
-            return ketQua;
+            return resultStack;
         }
 
         List<Node> GenerateStep(Node node)
         {
             int n = node.Matrix.GetLength(0);//lấy số hàng của ma trận
 
-            List<Node> lstHuongDi = new List<Node>();
+            List<Node> listDistances = new List<Node>();
 
             #region  Xác định vị trí mảnh chống, có giá trị là 0
             int h;
@@ -181,7 +181,7 @@ namespace AStarPuzzle.Algorithm
                 temp.Index = _index;
                 temp.Parent = node.Index;
                 temp.G = _g + temp.Heuristic;
-                lstHuongDi.Add(temp);
+                listDistances.Add(temp);
 
                 //sau khi thay đổi ma trận thì copy lại ma trận cha cho Matrix để xét trường hợp tiếp theo
                 temp = new Node
@@ -203,7 +203,7 @@ namespace AStarPuzzle.Algorithm
                 temp.Index = _index;
                 temp.Parent = node.Index;
                 temp.G = _g + temp.Heuristic;
-                lstHuongDi.Add(temp);
+                listDistances.Add(temp);
 
                 //sau khi thay đổi ma trận thì copy lại ma trận cha cho Matrix để xét trường hợp tiếp theo
                 temp = new Node
@@ -225,7 +225,7 @@ namespace AStarPuzzle.Algorithm
                 temp.Index = _index;
                 temp.Parent = node.Index;
                 temp.G = _g + temp.Heuristic;
-                lstHuongDi.Add(temp);
+                listDistances.Add(temp);
 
                 //sau khi thay đổi ma trận thì copy lại ma trận cha cho Matrix để xét trường hợp tiếp theo
                 temp = new Node
@@ -247,13 +247,13 @@ namespace AStarPuzzle.Algorithm
                 temp.Index = _index;
                 temp.Parent = node.Index;
                 temp.G = _g + temp.Heuristic;
-                lstHuongDi.Add(temp);
+                listDistances.Add(temp);
 
                 //đến đây đã xết hết hướng đi nên không cần copy lại ma trận
             }
             #endregion
 
-            return lstHuongDi;
+            return listDistances;
         }
 
 

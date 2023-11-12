@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace AStarPuzzle.Algorithm
 {
@@ -21,7 +20,8 @@ namespace AStarPuzzle.Algorithm
             {
                 { HeuristicOption.MisplacedTiles, CaculateHeuristicMisplacedTiles },
                 { HeuristicOption.ManhattanDistance, CaculateHeuristicManhattan },
-                { HeuristicOption.EuclideanDistance, CaculateHeuristicEuclidean }
+                { HeuristicOption.EuclideanDistance, CaculateHeuristicEuclidean },
+                { HeuristicOption.ChebyshevDistance, CaculateHeuristicChebyshev }
             };
         }
 
@@ -29,7 +29,7 @@ namespace AStarPuzzle.Algorithm
         {
             if (matrix.GetLength(0) != goal.GetLength(0) || matrix.GetLength(1) != goal.GetLength(1))
             {
-                throw new NotSupportedException("Kích thước hai mảng phải như nhau");
+                throw new NotSupportedException("Length not same!!!");
             }
             if (_heuristicCalculators.TryGetValue(heuristicOption, out var calculator))
             {
@@ -54,15 +54,13 @@ namespace AStarPuzzle.Algorithm
                     {
                         FindPositionInMatrix(goal, value, out var targetI, out var targetJ);
 
-                        double deltaX = targetI - i;
-                        double deltaY = targetJ - j;
+                        double deltaX = targetI - i; double deltaY = targetJ - j;
 
                         double distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
                         heuristicValue += distance;
                     }
                 }
             }
-
             return (int)heuristicValue;
         }
 
@@ -87,7 +85,6 @@ namespace AStarPuzzle.Algorithm
                     }
                 }
             }
-
             return heuristicValue;
         }
 
@@ -104,6 +101,23 @@ namespace AStarPuzzle.Algorithm
                     {
                         heuristicValue += matrix[i, j] != goal[i, j] ? 1 : 0;
                     }
+                }
+            }
+            return heuristicValue;
+        }
+
+        private int CaculateHeuristicChebyshev(int[,] matrix, int[,] goal)
+        {
+            int heuristicValue = 0;
+
+            for (int i = 0; i < matrix.GetLength(0); i++)
+            {
+                for (int j = 0; j < matrix.GetLength(1); j++)
+                {
+                    int value = matrix[i, j];
+                    FindPositionInMatrix(goal, value, out var targetI, out var targetJ);
+                    int distance = Math.Max(Math.Abs(i - targetI), Math.Abs(j - targetJ));
+                    heuristicValue += distance;
                 }
             }
             return heuristicValue;

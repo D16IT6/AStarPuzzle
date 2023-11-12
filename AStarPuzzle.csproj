@@ -52,7 +52,6 @@
   <ItemGroup>
     <Compile Include="Algorithm\HeuristicCaculator.cs" />
     <Compile Include="Algorithm\HeuristicOption.cs" />
-    <Compile Include="Algorithm\Node.cs" />
     <Compile Include="Algorithm\AStarAlgorithm.cs" />
     <Compile Include="Helpers\MatrixHelper.cs" />
     <Compile Include="Models\HeuristicType.cs" />
@@ -84,6 +83,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <None Include="ClassDiagram1.cd" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

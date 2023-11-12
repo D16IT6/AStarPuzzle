@@ -201,7 +201,7 @@
             // lblSolveStep
             // 
             this.lblSolveStep.AutoSize = true;
-            this.lblSolveStep.Location = new System.Drawing.Point(331, 146);
+            this.lblSolveStep.Location = new System.Drawing.Point(322, 146);
             this.lblSolveStep.Name = "lblSolveStep";
             this.lblSolveStep.Size = new System.Drawing.Size(34, 21);
             this.lblSolveStep.TabIndex = 11;
@@ -218,10 +218,10 @@
             // 
             // pbSolveStep
             // 
-            this.pbSolveStep.Location = new System.Drawing.Point(107, 146);
+            this.pbSolveStep.Location = new System.Drawing.Point(92, 146);
             this.pbSolveStep.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.pbSolveStep.Name = "pbSolveStep";
-            this.pbSolveStep.Size = new System.Drawing.Size(193, 22);
+            this.pbSolveStep.Size = new System.Drawing.Size(176, 22);
             this.pbSolveStep.TabIndex = 9;
             // 
             // Heuristic
@@ -237,10 +237,10 @@
             // 
             this.cmbHeuristic.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbHeuristic.FormattingEnabled = true;
-            this.cmbHeuristic.Location = new System.Drawing.Point(107, 103);
+            this.cmbHeuristic.Location = new System.Drawing.Point(92, 103);
             this.cmbHeuristic.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.cmbHeuristic.Name = "cmbHeuristic";
-            this.cmbHeuristic.Size = new System.Drawing.Size(161, 29);
+            this.cmbHeuristic.Size = new System.Drawing.Size(176, 29);
             this.cmbHeuristic.TabIndex = 6;
             // 
             // btnRunSolver
@@ -333,7 +333,7 @@
             this.cmbSize.Location = new System.Drawing.Point(92, 11);
             this.cmbSize.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.cmbSize.Name = "cmbSize";
-            this.cmbSize.Size = new System.Drawing.Size(161, 29);
+            this.cmbSize.Size = new System.Drawing.Size(176, 29);
             this.cmbSize.TabIndex = 1;
             this.cmbSize.SelectedIndexChanged += new System.EventHandler(this.cmbSize_SelectedIndexChanged);
             // 
@@ -370,7 +370,7 @@
             this.MaximizeBox = false;
             this.Name = "FormMain";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "FormMain";
+            this.Text = "N Puzzle Game";
             this.Load += new System.EventHandler(this.FormMain_Load);
             this.splitMain.Panel1.ResumeLayout(false);
             this.splitMain.Panel2.ResumeLayout(false);

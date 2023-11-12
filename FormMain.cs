@@ -54,6 +54,13 @@ namespace AStarPuzzle
                     Name = "Euclidean Distance",
                     Description = "Heuristic này tính khoảng cách Euclidean từ vị trí hiện tại đến vị trí mục tiêu. Khoảng cách Euclidean giữa hai điểm là căn bậc hai của tổng bình phương khoảng cách theo chiều ngang và dọc giữa chúng.",
                     Heuristic = HeuristicOption.EuclideanDistance
+                },
+                new HeuristicType()
+                {
+                    Id = 4,
+                    Name = "Chebyshev Distance",
+                    Description = "Heuristic này tính khoảng cách Chebyshev từ vị trí hiện tại đến vị trí mục tiêu. Khoảng cách Chebyshev giữa hai điểm là giá trị lớn nhất giữa sự chênh lệch theo chiều ngang và chiều dọc giữa chúng.",
+                    Heuristic = HeuristicOption.ChebyshevDistance
                 }
             };
         }
@@ -136,7 +143,7 @@ namespace AStarPuzzle
             var inputSolve = MatrixHelper.GetMatrix(_pictureBoxes, _size, Color.BlueViolet);
             var inputSolveFlatten = MatrixHelper.FlattenMatrix(inputSolve);
 
-            var solveResult = GameHelper.CanSolve(pictureBoxes, inputSolveFlatten, _size);
+            var solveResult = GameHelper.CanSolve(pictureBoxes, inputSolveFlatten, _size, Color.BlueViolet);
 
             string temp = $"n = {solveResult.n}\n" +
                           $"N = {solveResult.N}\n" +
@@ -169,7 +176,7 @@ namespace AStarPuzzle
 
             var elapsed = GetTimeSolve(currentMatrix, currentHeuristic.Heuristic, out var stackResult);
 
-            
+
 
 
             int resultCount = stackResult.Count;
@@ -315,6 +322,7 @@ Mức cao hơn máy không chạy nổi vì không gian mẫu quá lớn", @"Ch�
             if (!HandleSolved(_isSolved)) return;
 
             var currentMatrix = MatrixHelper.GetMatrix(_pictureBoxes, _size, _emptyColor);
+
             var builder = new StringBuilder();
             builder.AppendLine("Kết quả giải theo các heuristic");
 
@@ -328,6 +336,10 @@ Mức cao hơn máy không chạy nổi vì không gian mẫu quá lớn", @"Ch�
             stackResult.Clear();
             elapsed = GetTimeSolve(currentMatrix, HeuristicOption.EuclideanDistance, out stackResult);
             builder.AppendLine($"Euclidean Distance: {stackResult.Count - 1} bước, hết {elapsed.Milliseconds} ms");
+
+            stackResult.Clear();
+            elapsed = GetTimeSolve(currentMatrix, HeuristicOption.ChebyshevDistance, out stackResult);
+            builder.AppendLine($"Chebyshev Distance: {stackResult.Count - 1} bước, hết {elapsed.Milliseconds} ms");
 
 
             MessageBox.Show(builder.ToString(), @"Kết quả giải", MessageBoxButtons.OK, MessageBoxIcon.Information);
