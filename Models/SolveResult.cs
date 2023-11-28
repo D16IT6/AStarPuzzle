@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-
-namespace AStarPuzzle.Models
+﻿namespace AStarPuzzle.Models
 {
     public class SolveResult
     {

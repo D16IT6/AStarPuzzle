@@ -1,5 +1,4 @@
 ﻿using AStarPuzzle.Models;
-using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -39,7 +38,7 @@ namespace AStarPuzzle.Helpers
             //N mod 2 = 0 và ô trống nằm trên dòng chẵn tính từ trên xuống.
             //N mod 2 = 1 và ô trống nằm trên dòng lẻ tính từ trên xuống.
 
-            int N = 0;
+            int misplacedTiles = 0;
             int length = listValueFrom1ToN.Length;
             for (int i = 0; i < length - 1; ++i)
             {
@@ -48,7 +47,7 @@ namespace AStarPuzzle.Helpers
                 {
                     if (listValueFrom1ToN[j] == 0) continue;
 
-                    if (listValueFrom1ToN[i] > listValueFrom1ToN[j]) N++;
+                    if (listValueFrom1ToN[i] > listValueFrom1ToN[j]) misplacedTiles++;
 
                 }
             }
@@ -57,18 +56,18 @@ namespace AStarPuzzle.Helpers
                 return new SolveResult()
                 {
                     n = n,
-                    N = N,
-                    CanSolve = N % 2 == 0,
+                    N = misplacedTiles,
+                    CanSolve = misplacedTiles % 2 == 0,
                     EmptyRowIndex = emptyRowIndex
                 };
             bool canSolve;
-            if (N % 2 == 0) canSolve = emptyRowIndex % 2 == 0;
+            if (misplacedTiles % 2 == 0) canSolve = emptyRowIndex % 2 == 0;
             else canSolve = emptyRowIndex % 2 == 1;
 
             return new SolveResult()
             {
                 n = n,
-                N = N,
+                N = misplacedTiles,
                 CanSolve = canSolve,
                 EmptyRowIndex = emptyRowIndex
             };

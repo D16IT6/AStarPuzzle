@@ -1,12 +1,13 @@
 ﻿using AStarPuzzle.Helpers;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace AStarPuzzle.Algorithm
 {
     public class Node
     {
-
         public int[,] Matrix;// ma trận 8 số
         public int Heuristic;//số mảnh sai vị trí của ma trận
         public int Index;// chỉ số của node
@@ -22,19 +23,99 @@ namespace AStarPuzzle.Algorithm
         private readonly HeuristicCaculator _heuristicCaculator;
         private HeuristicOption _heuristicOption;
 
-        public AStarAlgorithm(HeuristicOption heuristicOption = HeuristicOption.ManhattanDistance, int size = 3, int emptyValue = 0)
+        public AStarAlgorithm(int size = 3, int emptyValue = 0)
         {
-            _heuristicOption = heuristicOption;
             _goalMatrix = MatrixHelper.GetGoalMatrix(size);
             _heuristicCaculator = new HeuristicCaculator(emptyValue);
 
         }
+
+        public async Task<ResultWrapper> SolveAsync(int[,] matrix, HeuristicOption heuristicOption = default)
+        {
+            var stopWatch = new Stopwatch();
+            _heuristicOption = heuristicOption != default ? heuristicOption : HeuristicOption.ManhattanDistance;
+            List<Node> close = new List<Node>();
+            List<Node> open = new List<Node>();
+
+            //khai báo và khởi tạo cho node đầu tiên
+            Node node = new Node
+            {
+                Matrix = matrix,
+                Heuristic = _heuristicCaculator.CaculateHeuristic(matrix, _goalMatrix, _heuristicOption),
+                Index = 0,
+                Parent = -1,
+                G = 0
+            };
+            //cho trạng thái đầu tiên vào Open;
+            open.Add(node);
+
+            int u = 0;
+            stopWatch.Start();
+            while (open.Count != 0)
+            {
+                #region chọn node tốt nhất trong tập Open và chuyển nó sang Close
+
+                node = open[u];
+                open.Remove(node);
+                close.Add(node);
+                #endregion
+
+                //nếu node có số mảnh sai là 0, tức là đích thì thoát
+                if (node.Heuristic == 0) break;
+                //sinh hướng đi của node hiện tại
+                var listDistances = await GenerateStepAsync(node);
+
+                foreach (var t in listDistances)
+                {
+                    //hướng đi không thuộc Open và Close
+                    if (!EqualNode(t, open) && !EqualNode(t, close))
+                    {
+                        open.Add(t);
+                    }
+                    else
+                    {   //nếu hướng đi thuộc Open
+                        if (EqualNode(t, open))
+                        {
+                            /*nếu hướng đi đó tốt hơn thì sẽ được cập nhật lại, 
+                                ngược lại thì sẽ không cập nhật*/
+                            CompareBetter(t, open);
+                        }
+                        else
+                        {
+                            //nếu hướng đi thuộc Close
+                            if (EqualNode(t, close))
+                            {
+                                /*nếu hướng đi đó tốt hơn thì sẽ được cập nhật lại, 
+                                    ngược lại thì sẽ không cập nhật và chuyển từ Close sang Open*/
+                                if (CompareBetter(t, close))
+                                {
+                                    var temp = GetDupdicateNodeInClose(t, close);
+                                    close.Remove(temp);
+                                    open.Add(temp);
+                                }
+                            }
+                        }
+                    }
+                }
+                //chọn vị trí có phí tốt nhất trong Open
+                u = await BestOpenIndexAsync(open);
+
+            }
+            stopWatch.Stop();
+
+            //truy vét kết quả trong tập Close
+            var stackResult = BacktrackingResult(close);
+
+            return new ResultWrapper()
+            {
+                Result = stackResult,
+                Timing = stopWatch.Elapsed
+            };
+        }
         public Stack<int[,]> Solve(int[,] matrix, HeuristicOption heuristicOption = default)
         {
-            if (heuristicOption != default)
-            {
-                _heuristicOption = heuristicOption;
-            }
+            _heuristicOption = heuristicOption != default ? heuristicOption : HeuristicOption.ManhattanDistance;
+
             List<Node> close = new List<Node>();
             List<Node> open = new List<Node>();
 
@@ -135,7 +216,12 @@ namespace AStarPuzzle.Algorithm
             return resultStack;
         }
 
-        List<Node> GenerateStep(Node node)
+        private async Task<List<Node>> GenerateStepAsync(Node node)
+        {
+            return await Task.Run(() => GenerateStep(node));
+        }
+
+        private List<Node> GenerateStep(Node node)
         {
             int n = node.Matrix.GetLength(0);//lấy số hàng của ma trận
 
@@ -256,12 +342,11 @@ namespace AStarPuzzle.Algorithm
             return listDistances;
         }
 
+        async Task<int> BestOpenIndexAsync(List<Node> open)
+        {
+            return await Task.Run(() => BestOpenIndex(open));
+        }
 
-        /// <summary>
-        /// Chọn vị trí có chi phí tốt nhất trong Open
-        /// </summary>
-        /// <param name="open">Tập Open</param>
-        /// <returns>Vị trí tốt nhất</returns>
         int BestOpenIndex(List<Node> open)
         {
             if (open.Count != 0)
@@ -292,23 +377,16 @@ namespace AStarPuzzle.Algorithm
             return 0;
         }
 
-
-        /// <summary>
-        /// So sánh chi phí của hai node
-        /// </summary>
-        /// <param name="node"></param>
-        /// <param name="lst8So">Tập Open hoặc Close</param>
-        /// <returns>trả về true nếu tốt hơn và cập nhật lại cha và chi phí cho node, ngược lại không làm gì và trả về false </returns>
-        bool CompareBetter(Node node, List<Node> lst8So)
+        bool CompareBetter(Node node, List<Node> nodeList)
         {
-            for (int i = 0; i < lst8So.Count; i++)
-                if (EqualMatrix(node.Matrix, lst8So[i].Matrix))
+            foreach (var tempNode in nodeList)
+                if (EqualMatrix(node.Matrix, tempNode.Matrix))
                 {
-                    if (node.G < lst8So[i].G)
+                    if (node.G < tempNode.G)
                     {
                         //vì 2 ma trận bằng nhau lên số mảnh sai vi trị là như nhau lên ta không cần cập nhật
-                        lst8So[i].Parent = node.Parent;// cập nhật lại cha của hướng đi
-                        lst8So[i].G = node.G;// cập nhật lại chi phí đường đi
+                        tempNode.Parent = node.Parent;// cập nhật lại cha của hướng đi
+                        tempNode.G = node.G;// cập nhật lại chi phí đường đi
 
                         return true;
                     }
@@ -318,22 +396,23 @@ namespace AStarPuzzle.Algorithm
             return false;
         }
 
-        Node GetDupdicateNodeInClose(Node node, List<Node> lst8So)
+        Node GetDupdicateNodeInClose(Node node, List<Node> closeList)
         {
-            Node trung = new Node();
-            for (int i = 0; i < lst8So.Count; i++)
-                if (EqualMatrix(node.Matrix, lst8So[i].Matrix))
+            Node dupdicate = new Node();
+            foreach (var temp in closeList)
+                if (EqualMatrix(node.Matrix, temp.Matrix))
                 {
-                    trung = lst8So[i];
+                    dupdicate = temp;
                     break;
                 }
-            return trung;
+
+            return dupdicate;
         }
 
-        bool EqualNode(Node node, List<Node> lst8So)
+        bool EqualNode(Node node, List<Node> nodeList)
         {
-            for (int i = 0; i < lst8So.Count; i++)
-                if (EqualMatrix(lst8So[i].Matrix, node.Matrix))
+            foreach (var tempNode in nodeList)
+                if (EqualMatrix(tempNode.Matrix, node.Matrix))
                     return true;
 
             return false;

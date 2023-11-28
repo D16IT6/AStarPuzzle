@@ -71,7 +71,7 @@ namespace AStarPuzzle.Helpers
                         var tag = item.Tag as PictureTag;
 
                         if (tag == null) return;
-                        StringBuilder builder = new StringBuilder();
+                        var builder = new StringBuilder();
 
                         builder.AppendLine($"vị trí hiện tại: [{tag.CurrentRowIndex}][{tag.CurrentColumnIndex}]");
                         builder.AppendLine($"vị trí đúng: [{tag.TrueRowIndex}][{tag.TrueColumnIndex}]");

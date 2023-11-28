@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-
-namespace AStarPuzzle.Algorithm
+﻿namespace AStarPuzzle.Algorithm
 {
     public enum HeuristicOption
     {

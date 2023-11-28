@@ -58,7 +58,7 @@ namespace AStarPuzzle.Helpers
                     while (result.Count > 1)
                     {
 
-                        Thread.Sleep(GetSleepTime(tbSpeed));
+                        Task.Delay(GetSleepTime(tbSpeed)).Wait();
 
                         if (cancellationTokenSource.Token.IsCancellationRequested)
                         {

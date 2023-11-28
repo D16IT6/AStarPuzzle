@@ -1,6 +1,4 @@
 ﻿using AStarPuzzle.Algorithm;
-using System;
-using System.Linq;
 
 namespace AStarPuzzle.Models
 {

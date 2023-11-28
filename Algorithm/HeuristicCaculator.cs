@@ -135,7 +135,6 @@ namespace AStarPuzzle.Algorithm
                         return;
                 }
             }
-
             throw new ArgumentException("Value not found in the matrix.");
         }
     }
